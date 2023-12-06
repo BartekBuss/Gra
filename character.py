@@ -19,13 +19,13 @@ class Character(object):
     def tick(self):
         #Input
         pressed = pygame.key.get_pressed()
-        if pressed[pygame.K_w]:
+        if pressed[pygame.K_w] and self.pos[1] > 20:
             self.add_force(Vector2(0, -self.speed))
-        if pressed[pygame.K_s]:
+        if pressed[pygame.K_s] and self.pos[1] <700:
             self.add_force(Vector2(0, self.speed))
-        if pressed[pygame.K_d]:
+        if pressed[pygame.K_d] and self.pos[0] < 1260:
             self.add_force(Vector2(self.speed, 0))
-        if pressed[pygame.K_a]:
+        if pressed[pygame.K_a] and self.pos[0] > 20:
             self.add_force(Vector2(-self.speed, 0))
         
         
