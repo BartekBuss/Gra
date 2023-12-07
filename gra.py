@@ -114,7 +114,12 @@ class Bullet(object):
         self.direction = direction.normalize()
 
     def tick(self):
+        #Changing bulets pos with direction of character
         self.bullet_pos += self.bullet_speed * self.direction
+        #delete bullets out of sreen
+        if self.bullet_pos[0] < 0 or self.bullet_pos[0] > 1280 or self.bullet_pos[1] < 0 or self.bullet_pos[1] > 720:
+            self.game.bullets.remove(self)
+            #print(self.game.bullets)
 
     def draw(self):
         pygame.draw.circle(self.game.screen, (255, 255, 255), (int(self.bullet_pos[0]), int(self.bullet_pos[1])), 4)
