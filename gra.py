@@ -1,6 +1,7 @@
 import pygame
 from pygame.math import Vector2
 from sys import exit
+import random
 
 class Game(object):
     def __init__(self):
@@ -17,6 +18,8 @@ class Game(object):
 
         # Add player
         self.player = Character(self)
+        #Add enemies
+        self.enemies = [Enemy(self) for enemy in range(random.randint(1,20))]
 
         while True:
             # Handle events
@@ -43,13 +46,17 @@ class Game(object):
 
     def tick(self):
         self.player.tick()
+        #Update all enemies
+        for enemy in self.enemies:
+            enemy.tick()
 
     def draw(self):
         for bullet in self.bullets:
             bullet.tick()
             bullet.draw()
 
-        self.player.draw()
+        for obj in [self.player] + self.enemies:
+            obj.draw()
 
 class Character(object):
     def __init__(self, game):
@@ -123,6 +130,30 @@ class Bullet(object):
 
     def draw(self):
         pygame.draw.circle(self.game.screen, (255, 255, 255), (int(self.bullet_pos[0]), int(self.bullet_pos[1])), 4)
+
+
+
+class Enemy(object):
+    def __init__(self, game):
+        self.game = game
+        self.enemy_pos = Vector2(random.randint(0, 1280), random.randint(0, 720))
+        self.enemy_dir = Vector2(random.randint(-1,1), random.randint(-1, 1))
+        self.enemy_speed = 0.7
+    
+    def tick(self):
+        if (
+            self.enemy_pos.x < 0
+            or self.enemy_pos.x > self.game.screen.get_width()
+            or self.enemy_pos.y < 0
+            or self.enemy_pos.y > self.game.screen.get_height()
+        ):
+            # Jeśli przeciwnik opuścił obszar, zmień kierunek ruchu losowo
+            self.enemy_dir = Vector2(random.uniform(-1, 1), random.uniform(-1, 1)).normalize()
+            
+        self.enemy_pos += self.enemy_dir * self.enemy_speed
+
+    def draw(self):
+        pygame.draw.rect(self.game.screen, (173, 25, 14), (self.enemy_pos[0], self.enemy_pos[1], 30, 20))
 
 if __name__ == "__main__":
     Game()
