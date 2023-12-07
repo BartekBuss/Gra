@@ -2,6 +2,7 @@ import pygame
 from pygame.math import Vector2
 from sys import exit
 import random
+import time
 
 class Game(object):
     def __init__(self):
@@ -9,6 +10,11 @@ class Game(object):
         self.tps_max = 60.0
         self.tps_delta = 0.0
         self.bullets = []
+        self.score = 0
+
+        self.clock = pygame.time.Clock()
+        self.start_time = time.time()
+        self.elapsed_time = 0
 
         # Initialization
         pygame.init()
@@ -46,9 +52,18 @@ class Game(object):
 
     def tick(self):
         self.player.tick()
-        #Update all enemies
+        # Update all enemies
         for enemy in self.enemies:
             enemy.tick()
+
+        self.check_collision()
+        self.check_player_collision()
+        self.check_enemy_collision()  # Dodane sprawdzanie kolizji między przeciwnikami
+
+        # Usuń przeciwników, którzy wyjechali poza ekran
+        self.enemies = [enemy for enemy in self.enemies if 0 <= enemy.enemy_pos.x <= self.screen.get_width() - 30 and 0 <= enemy.enemy_pos.y <= self.screen.get_height() - 30]
+
+        self.elapsed_time = time.time() - self.start_time
 
     def draw(self):
         for bullet in self.bullets:
@@ -57,6 +72,68 @@ class Game(object):
 
         for obj in [self.player] + self.enemies:
             obj.draw()
+            
+        self.draw_score()
+        self.draw_time()
+
+    def check_collision(self):
+        for bullet in self.bullets:
+            for enemy in self.enemies:
+                if pygame.Rect(enemy.enemy_pos.x, enemy.enemy_pos.y, 30, 20).colliderect(pygame.Rect(bullet.bullet_pos.x - 2, bullet.bullet_pos.y - 2, 4, 4)):
+                    self.bullets.remove(bullet)
+                    self.enemies.remove(enemy)
+                    self.score += 1
+        if not self.enemies:
+            self.spawn_enemies()
+
+    def check_player_collision(self):
+        player_rect = pygame.Rect(self.player.pos.x - 10, self.player.pos.y - 20, 20, 20)
+        for enemy in self.enemies:
+            enemy_rect = pygame.Rect(enemy.enemy_pos.x, enemy.enemy_pos.y, 30, 20)
+            if player_rect.colliderect(enemy_rect):
+                self.restart_game()
+                self.score = 0
+
+    def restart_game(self):
+        self.player = Character(self)
+        self.enemies = [Enemy(self) for _ in range(random.randint(1, 20))]
+        self.bullets = []
+
+        self.start_time = time.time()
+        self.elapsed_time = 0
+
+    def draw_score(self):
+        font = pygame.font.Font(None, 36)
+        score_text = font.render(f"Score: {self.score}", True, (255, 255, 255))
+        self.screen.blit(score_text, (10, 10))
+
+    def draw_time(self):
+        font = pygame.font.Font(None, 36)
+        time_text = font.render(f"Time: {int(self.elapsed_time)}s", True, (255, 255, 255))
+        self.screen.blit(time_text, (10, 40))
+
+    def spawn_enemies(self):
+        self.enemies = [Enemy(self) for _ in range(random.randint(1, 20))]
+        player_rect = pygame.Rect(self.player.pos.x - 10, self.player.pos.y - 20, 20, 20)
+
+        for enemy in self.enemies:
+            while True:
+                enemy.enemy_pos = Vector2(random.randint(30, self.screen.get_width() - 30), random.randint(30, self.screen.get_height() - 30))
+
+                # Sprawdź, czy przeciwnik jest wystarczająco daleko od gracza
+                if pygame.Rect(enemy.enemy_pos.x, enemy.enemy_pos.y, 30, 20).colliderect(player_rect.inflate(10, 10)):
+                    continue
+                else:
+                    break
+
+    def check_enemy_collision(self):
+        for i, enemy1 in enumerate(self.enemies):
+            for j, enemy2 in enumerate(self.enemies):
+                if i != j:  # Sprawdź kolizje tylko między różnymi przeciwnikami
+                    if pygame.Rect(enemy1.enemy_pos.x, enemy1.enemy_pos.y, 30, 20).colliderect(pygame.Rect(enemy2.enemy_pos.x, enemy2.enemy_pos.y, 30, 20)):
+                        # Zmiana kierunku obu przeciwników
+                        enemy1.enemy_dir *= -1
+                        enemy2.enemy_dir *= -1
 
 class Character(object):
     def __init__(self, game):
@@ -109,8 +186,9 @@ class Character(object):
         pygame.draw.polygon(self.game.screen, (255, 125, 98), points)
 
     def shoot(self):
-        bullet = Bullet(self.game, self.pos, self.vel.normalize())
-        self.game.bullets.append(bullet)
+        if self.vel.length() > 0:  # Sprawdź, czy wektor prędkości ma niezerową długość
+            bullet = Bullet(self.game, self.pos, self.vel.normalize())
+            self.game.bullets.append(bullet)
 
 
 class Bullet(object):
@@ -128,6 +206,8 @@ class Bullet(object):
             self.game.bullets.remove(self)
             #print(self.game.bullets)
 
+        self.game.check_collision()
+
     def draw(self):
         pygame.draw.circle(self.game.screen, (255, 255, 255), (int(self.bullet_pos[0]), int(self.bullet_pos[1])), 4)
 
@@ -136,24 +216,38 @@ class Bullet(object):
 class Enemy(object):
     def __init__(self, game):
         self.game = game
-        self.enemy_pos = Vector2(random.randint(0, 1280), random.randint(0, 720))
-        self.enemy_dir = Vector2(random.randint(-1,1), random.randint(-1, 1))
-        self.enemy_speed = 0.7
+        self.enemy_pos = Vector2(random.randint(30, self.game.screen.get_width() - 30), random.randint(30, self.game.screen.get_height() - 30))
+        self.enemy_dir = Vector2(random.uniform(-1, 1), random.uniform(-1, 1)).normalize()
+        self.enemy_speed = 0.7 
     
     def tick(self):
-        if (
-            self.enemy_pos.x < 0
-            or self.enemy_pos.x > self.game.screen.get_width()
-            or self.enemy_pos.y < 0
-            or self.enemy_pos.y > self.game.screen.get_height()
-        ):
-            # Jeśli przeciwnik opuścił obszar, zmień kierunek ruchu losowo
-            self.enemy_dir = Vector2(random.uniform(-1, 1), random.uniform(-1, 1)).normalize()
-            
         self.enemy_pos += self.enemy_dir * self.enemy_speed
 
+        # Sprawdź kolizję z innymi przeciwnikami i zmień kierunek
+        for other_enemy in self.game.enemies:
+            if other_enemy != self:
+                if pygame.Rect(self.enemy_pos.x, self.enemy_pos.y, 30, 20).colliderect(
+                        pygame.Rect(other_enemy.enemy_pos.x, other_enemy.enemy_pos.y, 30, 20)):
+                    self.enemy_dir *= -1
+                    other_enemy.enemy_dir *= -1
+
+        # Odbijanie się od krawędzi ekranu
+        if self.enemy_pos.x < 0:
+            self.enemy_pos.x = 0
+            self.enemy_dir.x *= -1
+        elif self.enemy_pos.x > self.game.screen.get_width() - 30:
+            self.enemy_pos.x = self.game.screen.get_width() - 30
+            self.enemy_dir.x *= -1
+
+        if self.enemy_pos.y < 0:
+            self.enemy_pos.y = 0
+            self.enemy_dir.y *= -1
+        elif self.enemy_pos.y > self.game.screen.get_height() - 30:
+            self.enemy_pos.y = self.game.screen.get_height() - 30
+            self.enemy_dir.y *= -1
+
     def draw(self):
-        pygame.draw.rect(self.game.screen, (173, 25, 14), (self.enemy_pos[0], self.enemy_pos[1], 30, 20))
+        pygame.draw.rect(self.game.screen, (173, 25, 14), (self.enemy_pos[0], self.enemy_pos[1], 30, 30))
 
 if __name__ == "__main__":
     Game()
