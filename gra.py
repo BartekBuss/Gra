@@ -25,7 +25,7 @@ class Game(object):
         # Add player
         self.player = Character(self)
         #Add enemies
-        self.enemies = [Enemy(self) for enemy in range(random.randint(1,20))]
+        self.enemies = [Enemy(self) for enemy in range(random.randint(1, 20))]
 
         while True:
             # Handle events
@@ -79,7 +79,7 @@ class Game(object):
     def check_collision(self):
         for bullet in self.bullets:
             for enemy in self.enemies:
-                if pygame.Rect(enemy.enemy_pos.x, enemy.enemy_pos.y, 30, 20).colliderect(pygame.Rect(bullet.bullet_pos.x - 2, bullet.bullet_pos.y - 2, 4, 4)):
+                if pygame.Rect(enemy.enemy_pos.x, enemy.enemy_pos.y, 30, 30).colliderect(pygame.Rect(bullet.bullet_pos.x - 2, bullet.bullet_pos.y - 2, 4, 4)):
                     self.bullets.remove(bullet)
                     self.enemies.remove(enemy)
                     self.score += 1
@@ -89,7 +89,7 @@ class Game(object):
     def check_player_collision(self):
         player_rect = pygame.Rect(self.player.pos.x - 10, self.player.pos.y - 20, 20, 20)
         for enemy in self.enemies:
-            enemy_rect = pygame.Rect(enemy.enemy_pos.x, enemy.enemy_pos.y, 30, 20)
+            enemy_rect = pygame.Rect(enemy.enemy_pos.x, enemy.enemy_pos.y, 30, 30)
             if player_rect.colliderect(enemy_rect):
                 self.restart_game()
                 self.score = 0
@@ -121,7 +121,7 @@ class Game(object):
                 enemy.enemy_pos = Vector2(random.randint(30, self.screen.get_width() - 30), random.randint(30, self.screen.get_height() - 30))
 
                 # Sprawdź, czy przeciwnik jest wystarczająco daleko od gracza
-                if pygame.Rect(enemy.enemy_pos.x, enemy.enemy_pos.y, 30, 20).colliderect(player_rect.inflate(10, 10)):
+                if pygame.Rect(enemy.enemy_pos.x, enemy.enemy_pos.y, 30, 30).colliderect(player_rect.inflate(10, 10)):
                     continue
                 else:
                     break
@@ -130,7 +130,7 @@ class Game(object):
         for i, enemy1 in enumerate(self.enemies):
             for j, enemy2 in enumerate(self.enemies):
                 if i != j:  # Sprawdź kolizje tylko między różnymi przeciwnikami
-                    if pygame.Rect(enemy1.enemy_pos.x, enemy1.enemy_pos.y, 30, 20).colliderect(pygame.Rect(enemy2.enemy_pos.x, enemy2.enemy_pos.y, 30, 20)):
+                    if pygame.Rect(enemy1.enemy_pos.x, enemy1.enemy_pos.y, 30, 30).colliderect(pygame.Rect(enemy2.enemy_pos.x, enemy2.enemy_pos.y, 30, 30)):
                         # Zmiana kierunku obu przeciwników
                         enemy1.enemy_dir *= -1
                         enemy2.enemy_dir *= -1
@@ -226,8 +226,8 @@ class Enemy(object):
         # Sprawdź kolizję z innymi przeciwnikami i zmień kierunek
         for other_enemy in self.game.enemies:
             if other_enemy != self:
-                if pygame.Rect(self.enemy_pos.x, self.enemy_pos.y, 30, 20).colliderect(
-                        pygame.Rect(other_enemy.enemy_pos.x, other_enemy.enemy_pos.y, 30, 20)):
+                if pygame.Rect(self.enemy_pos.x, self.enemy_pos.y, 30, 30).colliderect(
+                        pygame.Rect(other_enemy.enemy_pos.x, other_enemy.enemy_pos.y, 30, 30)):
                     self.enemy_dir *= -1
                     other_enemy.enemy_dir *= -1
 
